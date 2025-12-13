@@ -642,6 +642,7 @@ export async function transformAntigravityResponse(
   }
 
   try {
+    const headers = new Headers(response.headers);
     const text = await response.text();
 
     if (!response.ok) {
