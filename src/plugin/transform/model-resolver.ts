@@ -20,10 +20,10 @@ export const THINKING_TIER_BUDGETS = {
 
 /**
  * Gemini 3 uses thinkingLevel strings instead of numeric budgets.
- * Flash supports: minimal, low, medium, high
+ * Flash supports: low, medium, high
  * Pro supports: low, high
  */
-export const GEMINI_3_THINKING_LEVELS = ["minimal", "low", "medium", "high"] as const;
+export const GEMINI_3_THINKING_LEVELS = ["low", "medium", "high"] as const;
 
 /**
  * Model aliases - maps user-friendly names to API model names.
@@ -38,7 +38,6 @@ export const MODEL_ALIASES: Record<string, string> = {
   // For Antigravity, these are bypassed and full model name is kept
   "gemini-3-pro-low": "gemini-3-pro",
   "gemini-3-pro-high": "gemini-3-pro",
-  "gemini-3-flash-minimal": "gemini-3-flash",
   "gemini-3-flash-low": "gemini-3-flash",
   "gemini-3-flash-medium": "gemini-3-flash",
   "gemini-3-flash-high": "gemini-3-flash",
@@ -153,6 +152,7 @@ export function resolveModelWithTier(requestedModel: string): ResolvedModel {
 
   const isAntigravityOnly = ANTIGRAVITY_ONLY_MODELS.test(modelWithoutQuota);
   const quotaPreference = isAntigravity || isAntigravityOnly ? "antigravity" : "gemini-cli";
+  const explicitQuota = isAntigravity;
 
   const isGemini3 = modelWithoutQuota.toLowerCase().startsWith("gemini-3");
   const skipAlias = isAntigravity && isGemini3;
@@ -171,9 +171,10 @@ export function resolveModelWithTier(requestedModel: string): ResolvedModel {
         thinkingLevel: "minimal",
         isThinkingModel: true,
         quotaPreference,
+        explicitQuota,
       };
     }
-    return { actualModel: resolvedModel, isThinkingModel: isThinking, quotaPreference };
+    return { actualModel: resolvedModel, isThinkingModel: isThinking, quotaPreference, explicitQuota };
   }
 
   if (resolvedModel.includes("gemini-3") && !skipAlias) {
@@ -183,6 +184,7 @@ export function resolveModelWithTier(requestedModel: string): ResolvedModel {
       tier,
       isThinkingModel: true,
       quotaPreference,
+      explicitQuota,
     };
   }
 
@@ -192,6 +194,7 @@ export function resolveModelWithTier(requestedModel: string): ResolvedModel {
       tier,
       isThinkingModel: true,
       quotaPreference,
+      explicitQuota,
     };
   }
 
@@ -205,6 +208,7 @@ export function resolveModelWithTier(requestedModel: string): ResolvedModel {
     tier,
     isThinkingModel: isThinking,
     quotaPreference,
+    explicitQuota,
   };
 }
 
