@@ -1028,7 +1028,7 @@ function filterContentArray(
   sessionId?: string,
   getCachedSignatureFn?: (sessionId: string, text: string) => string | undefined,
   isClaudeModel?: boolean,
-  isLastAssistantMessage?: boolean,
+  isLastAssistantMessage: boolean = false,
 ): any[] {
   // For Claude models, strip thinking blocks by default for reliability
   // User can opt-in to keep thinking via OPENCODE_ANTIGRAVITY_KEEP_THINKING=1
