@@ -5,6 +5,18 @@ import type {
   ThoughtBuffer,
 } from './types';
 
+/**
+ * Simple string hash for thinking deduplication.
+ * Uses DJB2-like algorithm.
+ */
+function hashString(str: string): string {
+  let hash = 5381;
+  for (let i = 0; i < str.length; i++) {
+    hash = ((hash << 5) + hash) + str.charCodeAt(i); /* hash * 33 + c */
+  }
+  return (hash >>> 0).toString(16);
+}
+
 export function createThoughtBuffer(): ThoughtBuffer {
   const buffer = new Map<number, string>();
   return {
@@ -45,6 +57,7 @@ export function transformStreamingPayload(
 export function deduplicateThinkingText(
   response: unknown,
   sentBuffer: ThoughtBuffer,
+  displayedThinkingHashes?: Set<string>,
 ): unknown {
   if (!response || typeof response !== 'object') return response;
 
@@ -62,6 +75,16 @@ export function deduplicateThinkingText(
         const p = part as Record<string, unknown>;
         if (p.thought === true || p.type === 'thinking') {
           const fullText = (p.text || p.thinking || '') as string;
+          
+          if (displayedThinkingHashes) {
+            const hash = hashString(fullText);
+            if (displayedThinkingHashes.has(hash)) {
+              sentBuffer.set(index, fullText);
+              return null;
+            }
+            displayedThinkingHashes.add(hash);
+          }
+
           const sentText = sentBuffer.get(index) ?? '';
 
           if (fullText.startsWith(sentText)) {
@@ -97,6 +120,17 @@ export function deduplicateThinkingText(
       const b = block as Record<string, unknown> | null;
       if (b?.type === 'thinking') {
         const fullText = (b.thinking || b.text || '') as string;
+        
+        if (displayedThinkingHashes) {
+          const hash = hashString(fullText);
+          if (displayedThinkingHashes.has(hash)) {
+            sentBuffer.set(thinkingIndex, fullText);
+            thinkingIndex++;
+            return null;
+          }
+          displayedThinkingHashes.add(hash);
+        }
+
         const sentText = sentBuffer.get(thinkingIndex) ?? '';
 
         if (fullText.startsWith(sentText)) {
@@ -154,7 +188,11 @@ export function transformSseLine(
         );
       }
 
-      let response: unknown = deduplicateThinkingText(parsed.response, sentThinkingBuffer);
+      let response: unknown = deduplicateThinkingText(
+        parsed.response,
+        sentThinkingBuffer,
+        options.displayedThinkingHashes
+      );
 
       if (options.debugText && callbacks.onInjectDebug && !debugState.injected) {
         response = callbacks.onInjectDebug(response, options.debugText);
